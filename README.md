@@ -4,7 +4,7 @@
 
 ClearPost is a dependency-free Manifest V3 extension for Chromium browsers. It watches the publish action for X posts, replies, and quotes, sends only the submitted text for the initial check, and shows a private result panel with either an acknowledgement or correction suggestions. From that result, the user can open a short follow-up conversation that sends an explicit question with the active result context.
 
-**Current version:** `0.2.0`
+**Current version:** `0.2.1`
 
 **Current mode:** check after posting
 
@@ -18,6 +18,7 @@ ClearPost is a dependency-free Manifest V3 extension for Chromium browsers. It w
 - Preserves the original post, including hashtags, mentions, URLs, emojis, line breaks, and voice.
 - Displays a clean-result message or an original-versus-suggested comparison.
 - Opens a contextual follow-up conversation for questions and clarifications.
+- Formats common Markdown in assistant replies, including lists, emphasis, code, quotes, and safe links.
 - Keeps the API key in the extension's local storage and out of the X page.
 - Provides opt-in diagnostic logs for request timing and response shape.
 
@@ -108,7 +109,7 @@ flowchart LR
 | File | Responsibility |
 | --- | --- |
 | `manifest.json` | Manifest V3 permissions and entry points |
-| `content-script.js` | X composer detection, text snapshot, result panel, follow-up conversation, and dismiss actions |
+| `content-script.js` | X composer detection, text snapshot, result panel, safe Markdown rendering, follow-up conversation, and dismiss actions |
 | `service-worker.js` | Sender validation, settings lookup, timeout, DeepSeek request, safe diagnostics |
 | `options.html`, `options.css`, `options.js` | API key, model, checks, language, and diagnostics settings |
 | `src/settings.js` | Defaults and settings normalization |
@@ -165,7 +166,7 @@ The fixture stubs the extension message response locally; it does not call DeepS
 - Manifest V3 service workers are event-driven and sleep while idle. “Always on” means active while a matching X tab and the extension are running; it is not a permanent OS daemon.
 - DeepSeek/network latency is bounded by a 30-second request timeout.
 - Follow-up answers are limited to the active result panel and are not persisted after it is dismissed.
-- The `Review before posting` mode is designed in the settings page but is not implemented in `0.2.0`.
+- The `Review before posting` mode is designed in the settings page but is not implemented in `0.2.1`.
 - A shared production API key must not be embedded in a distributed extension. Use user-supplied keys or an authenticated backend proxy for multi-user distribution.
 
 ## Roadmap

@@ -1,6 +1,6 @@
 # ClearPost privacy notes
 
-ClearPost `0.2.0` has no analytics, telemetry, advertising, account system, or developer-operated server.
+ClearPost `0.2.1` has no analytics, telemetry, advertising, account system, or developer-operated server.
 
 ## Data sent to DeepSeek
 

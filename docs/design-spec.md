@@ -21,6 +21,7 @@ The accepted visual references are:
 - Diagnostics: opt-in debug-logging switch with a short privacy explanation.
 - Overlay: loading progress, clean result, correction comparison, follow-up conversation, dismiss, retry, and missing-key settings action.
 - Follow-up conversation: contextual prompt, bounded message thread, question input, send, retry, and return-to-result actions.
+- Assistant replies: safe Markdown formatting for paragraphs, lists, emphasis, inline/fenced code, blockquotes, and HTTP(S) links; raw HTML remains text.
 - Motion: 180ms overlay entry and indeterminate progress; removed under `prefers-reduced-motion`.
 - Focus: cobalt 3px focus ring; every action remains keyboard operable.
 
