@@ -60,18 +60,25 @@
           lastError: undefined,
           sendMessage(message, callback) {
             if (previewState === "loading") return;
-            setTimeout(() => callback({
-              ok: true,
-              result: {
-                verdict: "changes",
-                correctedText: "They’re going to receive it tomorrow.",
-                acknowledgement: "The timing is concise and easy to understand.",
-                issues: [
-                  { type: "grammar", original: "Their", replacement: "They’re" },
-                  { type: "spelling", original: "recieve", replacement: "receive" }
-                ]
+            setTimeout(() => callback(message.type === "CLEARPOST_FOLLOW_UP"
+              ? {
+                ok: true,
+                result: {
+                  answer: "Use ‘they’re’ for ‘they are’ and ‘their’ for possession."
+                }
               }
-            }), 650);
+              : {
+                ok: true,
+                result: {
+                  verdict: "changes",
+                  correctedText: "They’re going to receive it tomorrow.",
+                  acknowledgement: "The timing is concise and easy to understand.",
+                  issues: [
+                    { type: "grammar", original: "Their", replacement: "They’re" },
+                    { type: "spelling", original: "recieve", replacement: "receive" }
+                  ]
+                }
+              }), 650);
           }
         }
       };

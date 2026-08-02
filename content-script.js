@@ -11,6 +11,7 @@
   let overlay = null;
   let requestToken = 0;
   let debugLogging = false;
+  let conversation = null;
 
   initializeDebugLogging();
 
@@ -61,6 +62,7 @@
 
   async function checkSubmission(snapshot) {
     const token = ++requestToken;
+    conversation = null;
     showLoading(token);
 
     try {
@@ -187,6 +189,9 @@
 
   function showResult(result, originalText, token) {
     const ui = ensureOverlay();
+    if (conversation?.token === token) {
+      conversation.view = "result";
+    }
     ui.shell.className = "shell result";
     const changed = result?.verdict === "changes" && result.correctedText !== originalText;
     const content = [createHeader(() => cancelRequest(token))];
@@ -202,8 +207,8 @@
         ),
         element("p", { className: "metadata" }, "Checked with DeepSeek"),
         element("div", { className: "actions" },
-          button("Dismiss", "secondary", dismissOverlay),
-          button("Copy original", "primary-outline", (event) => copyFromButton(event, originalText))
+          button(conversationLabel(token), "primary-outline", () => openFollowUp(result, originalText, token)),
+          button("Dismiss", "secondary", dismissOverlay)
         )
       );
     } else {
@@ -220,7 +225,7 @@
           : null,
         element("p", { className: "metadata" }, "Checked with DeepSeek"),
         element("div", { className: "actions" },
-          button("Copy suggestion", "primary-outline", (event) => copyFromButton(event, result.correctedText)),
+          button(conversationLabel(token), "primary-outline", () => openFollowUp(result, originalText, token)),
           button("Dismiss", "secondary", dismissOverlay)
         )
       );
@@ -244,6 +249,218 @@
         button("Dismiss", "secondary", dismissOverlay)
       )
     );
+  }
+
+  function conversationLabel(token) {
+    return conversation?.token === token && conversation.turns.length > 0
+      ? "Continue conversation"
+      : "Ask a follow-up";
+  }
+
+  function openFollowUp(result, originalText, token) {
+    if (!conversation || conversation.token !== token || conversation.context.originalText !== originalText) {
+      conversation = {
+        token,
+        result,
+        context: {
+          originalText,
+          suggestedText: result?.correctedText || originalText,
+          acknowledgement: result?.acknowledgement || "",
+          issues: Array.isArray(result?.issues) ? result.issues : []
+        },
+        turns: [],
+        draft: "",
+        pending: false,
+        error: "",
+        retryQuestion: ""
+      };
+    }
+    showConversation(token);
+  }
+
+  function showConversation(token) {
+    if (!conversation || conversation.token !== token) {
+      return;
+    }
+
+    const ui = ensureOverlay();
+    conversation.view = "conversation";
+    ui.shell.className = "shell conversation";
+    const thread = element("div", {
+      className: "conversation-thread",
+      role: "log",
+      "aria-label": "ClearPost follow-up conversation"
+    });
+
+    if (conversation.turns.length === 0) {
+      thread.append(element("p", { className: "conversation-empty" },
+        "Ask why a change was suggested, request another wording, or clarify a grammar rule."
+      ));
+    } else {
+      for (const turn of conversation.turns) {
+        thread.append(
+          element("div", { className: `message ${turn.role}` },
+            element("span", { className: "message-label" }, turn.role === "user" ? "You" : "ClearPost"),
+            element("p", { className: "message-text" }, turn.content)
+          )
+        );
+      }
+    }
+
+    if (conversation.pending) {
+      thread.append(element("div", { className: "message assistant pending-message" },
+        element("span", { className: "message-label" }, "ClearPost"),
+        element("p", { className: "message-text" }, "Thinking…")
+      ));
+    }
+
+    if (conversation.error) {
+      thread.append(element("div", { className: "conversation-error", role: "alert" },
+        element("span", {}, conversation.error),
+        conversation.retryQuestion
+          ? button("Try again", "secondary compact", () => void retryFollowUp(token))
+          : null
+      ));
+    }
+
+    const input = element("textarea", {
+      className: "follow-up-input",
+      rows: "2",
+      maxlength: "2000",
+      placeholder: "Ask a follow-up question…",
+      "aria-label": "Follow-up question"
+    });
+    input.value = conversation.draft;
+    input.disabled = conversation.pending;
+    input.addEventListener("input", () => {
+      if (conversation?.token === token) {
+        conversation.draft = input.value;
+      }
+    });
+
+    const form = element("form", { className: "follow-up-form" });
+    const sendButton = button("Send", "primary", () => {});
+    sendButton.setAttribute("type", "submit");
+    sendButton.disabled = conversation.pending;
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void submitFollowUp(input.value, token);
+    });
+    form.append(
+      input,
+      element("div", { className: "actions conversation-actions" },
+        button("Back to result", "secondary", () => showResult(conversation.result, conversation.context.originalText, token)),
+        sendButton
+      )
+    );
+
+    replaceChildren(ui.body,
+      createHeader(() => cancelRequest(token)),
+      element("div", { className: "conversation-heading" },
+        element("h2", {}, "Ask about this check"),
+        element("p", {}, "Your post and its suggestions stay in context for this conversation.")
+      ),
+      thread,
+      form
+    );
+
+    if (!conversation.pending) {
+      setTimeout(() => {
+        if (input.isConnected) input.focus();
+      }, 0);
+    }
+  }
+
+  async function submitFollowUp(question, token, { retry = false } = {}) {
+    const current = conversation;
+    if (!current || current.token !== token || current.pending) {
+      return;
+    }
+
+    const normalizedQuestion = typeof question === "string"
+      ? question.replace(/\r\n?/g, "\n").trim()
+      : "";
+    if (!normalizedQuestion) {
+      current.error = "Write a question before sending.";
+      current.retryQuestion = "";
+      if (current.view === "conversation") {
+        showConversation(token);
+      } else {
+        showResult(current.result, current.context.originalText, token);
+      }
+      return;
+    }
+    if (normalizedQuestion.length > 2_000) {
+      current.error = "Keep the question under 2,000 characters.";
+      current.retryQuestion = "";
+      showConversation(token);
+      return;
+    }
+
+    if (!retry) {
+      current.turns.push({ role: "user", content: normalizedQuestion });
+    }
+    current.draft = "";
+    current.pending = true;
+    current.error = "";
+    current.retryQuestion = normalizedQuestion;
+    contentLog("debug", "follow_up_started", {
+      questionLength: normalizedQuestion.length,
+      historyTurnCount: current.turns.length - 1,
+      retry
+    });
+    showConversation(token);
+
+    try {
+      const response = await sendRuntimeMessage({
+        type: "CLEARPOST_FOLLOW_UP",
+        payload: {
+          context: current.context,
+          history: current.turns.slice(0, -1),
+          question: normalizedQuestion
+        }
+      });
+      if (conversation !== current || token !== requestToken) {
+        return;
+      }
+      if (response?.ok && response.result?.answer) {
+        current.turns.push({ role: "assistant", content: response.result.answer });
+        current.pending = false;
+        current.error = "";
+        current.retryQuestion = "";
+        contentLog("debug", "follow_up_completed", {
+          answerLength: response.result.answer.length
+        });
+      } else {
+        current.pending = false;
+        current.error = response?.error?.message || "ClearPost could not answer that question.";
+        contentLog("error", "follow_up_failed", {
+          code: response?.error?.code ?? "UNKNOWN_ERROR",
+          message: current.error
+        }, true);
+      }
+      if (current.view === "conversation") {
+        showConversation(token);
+      } else {
+        showResult(current.result, current.context.originalText, token);
+      }
+    } catch {
+      if (conversation === current && token === requestToken) {
+        current.pending = false;
+        current.error = "ClearPost could not start the follow-up conversation.";
+        contentLog("error", "follow_up_runtime_failed", { message: current.error }, true);
+        if (current.view === "conversation") {
+          showConversation(token);
+        } else {
+          showResult(current.result, current.context.originalText, token);
+        }
+      }
+    }
+  }
+
+  function retryFollowUp(token) {
+    if (!conversation?.retryQuestion) return;
+    void submitFollowUp(conversation.retryQuestion, token, { retry: true });
   }
 
   function comparisonRow(label, text, suggested = false) {
@@ -287,6 +504,7 @@
   function dismissOverlay() {
     overlay?.host?.remove();
     overlay = null;
+    conversation = null;
   }
 
   function cancelRequest(token) {
@@ -334,22 +552,6 @@
     if (!force && !debugLogging) return;
     const logger = level === "error" ? console.error : console.info;
     logger.call(console, "[ClearPost]", event, details);
-  }
-
-  async function copyFromButton(event, text) {
-    const control = event.currentTarget;
-    try {
-      await navigator.clipboard.writeText(text);
-      const previous = control.textContent;
-      control.textContent = "Copied";
-      setTimeout(() => {
-        if (control.isConnected) {
-          control.textContent = previous;
-        }
-      }, 1_600);
-    } catch {
-      control.textContent = "Copy failed";
-    }
   }
 
   function button(label, variant, handler) {
@@ -475,8 +677,26 @@
     .comparison-text { margin: 0; color: inherit; overflow-wrap: anywhere; white-space: pre-wrap; }
     .acknowledgement { margin: 12px 0 4px; color: #3a4659; font-size: 13px; }
     .comparison ~ .metadata { margin: 10px 0 15px; }
+    .conversation-heading h2 { margin-bottom: 4px; }
+    .conversation-heading p { margin: 0; color: var(--cp-muted); font-size: 12.5px; }
+    .conversation-thread { max-height: 252px; overflow: auto; margin: 14px 0 12px; padding: 1px 2px 1px 0; }
+    .conversation-empty { margin: 0; padding: 13px; color: #526074; background: #f7f9fc; border: 1px solid #e2e7ef; border-radius: 8px; font-size: 13px; }
+    .message { margin: 0 0 10px; padding: 9px 11px; border-radius: 9px; }
+    .message.user { margin-left: 26px; color: #1d385f; background: #f0f6ff; border: 1px solid #d7e7ff; }
+    .message.assistant { margin-right: 26px; color: #2f3a4d; background: #f7f9fc; border: 1px solid #e2e7ef; }
+    .message-label { display: block; margin-bottom: 3px; color: var(--cp-muted); font-size: 11px; font-weight: 700; letter-spacing: .01em; }
+    .message-text { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .pending-message .message-text { color: var(--cp-muted); font-style: italic; }
+    .conversation-error { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; padding: 8px 10px; color: #9f241a; background: #fff6f5; border: 1px solid #f0c9c5; border-radius: 8px; font-size: 12px; }
+    .follow-up-form { margin-top: 3px; }
+    .follow-up-input { display: block; width: 100%; min-height: 70px; padding: 9px 11px; resize: vertical; color: var(--cp-ink); background: #ffffff; border: 1px solid #bfc9d7; border-radius: 8px; font: 14px/1.4 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; outline: none; }
+    .follow-up-input::placeholder { color: #7a8799; }
+    .follow-up-input:focus { border-color: var(--cp-blue); box-shadow: 0 0 0 3px rgba(23, 105, 232, 0.18); }
+    .follow-up-input:disabled { color: #7f8a9a; background: #f7f9fc; }
+    .conversation-actions { margin-top: 9px; }
     .actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; margin-top: 14px; }
     .button { min-height: 36px; padding: 7px 14px; border-radius: 8px; font: 600 13px/1.2 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; cursor: pointer; }
+    .button.compact { min-height: 28px; padding: 4px 9px; font-size: 12px; white-space: nowrap; }
     .button.primary { color: #ffffff; background: var(--cp-blue); border: 1px solid var(--cp-blue); }
     .button.primary:hover { background: #0f59cc; }
     .button.primary-outline { color: #0e61df; background: #ffffff; border: 1px solid #7aaef8; }

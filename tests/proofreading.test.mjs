@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildProofreadMessages, parseProofreadResponse, ProofreadResponseError } from "../src/proofreading.js";
+import {
+  buildFollowUpMessages,
+  buildProofreadMessages,
+  parseFollowUpResponse,
+  parseProofreadResponse,
+  ProofreadResponseError
+} from "../src/proofreading.js";
 import { DEFAULT_SETTINGS, normalizeSettings } from "../src/settings.js";
 
 test("buildProofreadMessages treats the submitted post as data", () => {
@@ -59,6 +65,45 @@ test("parseProofreadResponse rejects a non-JSON model response", () => {
     () => parseProofreadResponse("Looks good to me!", "Looks good."),
     ProofreadResponseError
   );
+});
+
+test("buildFollowUpMessages keeps the proofread context and question as data", () => {
+  const messages = buildFollowUpMessages({
+    originalText: "Their going to recieve it tomorrow.",
+    suggestedText: "They're going to receive it tomorrow.",
+    acknowledgement: "The timing is clear.",
+    issues: [
+      { type: "grammar", original: "Their", replacement: "They're", explanation: "Use the contraction." }
+    ]
+  }, [
+    { role: "user", content: "Why did you change it?" },
+    { role: "assistant", content: "The subject is they, so use they're." }
+  ], "Can you explain that more simply?", DEFAULT_SETTINGS);
+
+  assert.match(messages[0].content, /untrusted data/);
+  assert.deepEqual(JSON.parse(messages[1].content), {
+    task: "follow_up_about_proofread_result",
+    proofread: {
+      original_text: "Their going to recieve it tomorrow.",
+      suggested_text: "They're going to receive it tomorrow.",
+      acknowledgement: "The timing is clear.",
+      issues: [
+        { type: "grammar", original: "Their", replacement: "They're", explanation: "Use the contraction." }
+      ]
+    },
+    previous_messages: [
+      { role: "user", content: "Why did you change it?" },
+      { role: "assistant", content: "The subject is they, so use they're." }
+    ],
+    question: "Can you explain that more simply?"
+  });
+});
+
+test("parseFollowUpResponse normalizes plain text and rejects empty output", () => {
+  assert.deepEqual(parseFollowUpResponse("  Use **they're** for people.\r\n"), {
+    answer: "Use **they're** for people."
+  });
+  assert.throws(() => parseFollowUpResponse("   "), ProofreadResponseError);
 });
 
 test("normalizeSettings fills missing nested defaults and locks post-submit mode", () => {

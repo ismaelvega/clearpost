@@ -2,9 +2,9 @@
 
 > Post-submit grammar and spelling feedback for X, powered by DeepSeek.
 
-ClearPost is a dependency-free Manifest V3 extension for Chromium browsers. It watches the publish action for X posts, replies, and quotes, sends only the submitted text to DeepSeek, and shows a private result panel with either an acknowledgement or correction suggestions.
+ClearPost is a dependency-free Manifest V3 extension for Chromium browsers. It watches the publish action for X posts, replies, and quotes, sends only the submitted text for the initial check, and shows a private result panel with either an acknowledgement or correction suggestions. From that result, the user can open a short follow-up conversation that sends an explicit question with the active result context.
 
-**Current version:** `0.1.1`
+**Current version:** `0.2.0`
 
 **Current mode:** check after posting
 
@@ -17,10 +17,11 @@ ClearPost is a dependency-free Manifest V3 extension for Chromium browsers. It w
 - Optionally asks DeepSeek for a short acknowledgement of what reads well.
 - Preserves the original post, including hashtags, mentions, URLs, emojis, line breaks, and voice.
 - Displays a clean-result message or an original-versus-suggested comparison.
+- Opens a contextual follow-up conversation for questions and clarifications.
 - Keeps the API key in the extension's local storage and out of the X page.
 - Provides opt-in diagnostic logs for request timing and response shape.
 
-ClearPost does **not** edit, delay, delete, or automatically repost anything. The correction panel is informational; copying or applying a suggestion remains a deliberate user action.
+ClearPost does **not** edit, delay, delete, or automatically repost anything. The result and follow-up conversation are informational; applying a suggestion remains a deliberate user action in the X composer.
 
 ## Quick start
 
@@ -60,7 +61,9 @@ Submit a post, reply, or quote on `https://x.com`. ClearPost should show:
 
 1. a short **Checking your post…** loading panel;
 2. a clean acknowledgement, or an original/suggested comparison; and
-3. buttons to copy the original or suggestion and dismiss the panel.
+3. an **Ask a follow-up** action for questions about the result, plus a dismiss action.
+
+In the follow-up view, ask questions such as “Why is this grammar?” or “Can you make the suggestion warmer?” ClearPost keeps the original text, suggestion, issues, and prior turns in context for that conversation. Nothing is posted or edited automatically.
 
 The request starts when the publish control is activated. It is not confirmation that X's private backend accepted the post; X may still reject a submission afterward.
 
@@ -83,6 +86,8 @@ Useful events include:
 [ClearPost] api_response_shape
 [ClearPost] parse_failed
 [ClearPost] check_completed
+[ClearPost] follow_up_started
+[ClearPost] follow_up_completed
 ```
 
 Debug events include a request ID, model, elapsed time, HTTP status, content length/type, finish reason, and coarse shape flags such as `object_like`, `array_like`, or `markdown_fenced`. They intentionally exclude the API key, submitted post, and full model response. Error summaries remain available even when debug logging is disabled.
@@ -103,7 +108,7 @@ flowchart LR
 | File | Responsibility |
 | --- | --- |
 | `manifest.json` | Manifest V3 permissions and entry points |
-| `content-script.js` | X composer detection, text snapshot, result panel, copy/dismiss actions |
+| `content-script.js` | X composer detection, text snapshot, result panel, follow-up conversation, and dismiss actions |
 | `service-worker.js` | Sender validation, settings lookup, timeout, DeepSeek request, safe diagnostics |
 | `options.html`, `options.css`, `options.js` | API key, model, checks, language, and diagnostics settings |
 | `src/settings.js` | Defaults and settings normalization |
@@ -119,7 +124,7 @@ The extension requests only:
 - `https://api.deepseek.com/*` to call the DeepSeek chat endpoint; and
 - content-script access on `https://x.com/*` so it can identify the active composer.
 
-It does not request broad browsing access, history, cookies, account data, or media access. Submitted text and model results are not stored as a history. `chrome.storage.local` is profile-local but is not an encrypted password vault.
+It does not request broad browsing access, history, cookies, account data, or media access. Submitted text, follow-up questions, conversation turns, and model results are not stored as a history. `chrome.storage.local` is profile-local but is not an encrypted password vault.
 
 See [PRIVACY.md](PRIVACY.md) for the complete data boundary and [docs/architecture.md](docs/architecture.md) for the trust boundaries.
 
@@ -159,7 +164,8 @@ The fixture stubs the extension message response locally; it does not call DeepS
 - The listener observes a publish activation, not a server-confirmed post.
 - Manifest V3 service workers are event-driven and sleep while idle. “Always on” means active while a matching X tab and the extension are running; it is not a permanent OS daemon.
 - DeepSeek/network latency is bounded by a 30-second request timeout.
-- The `Review before posting` mode is designed in the settings page but is not implemented in `0.1.1`.
+- Follow-up answers are limited to the active result panel and are not persisted after it is dismissed.
+- The `Review before posting` mode is designed in the settings page but is not implemented in `0.2.0`.
 - A shared production API key must not be embedded in a distributed extension. Use user-supplied keys or an authenticated backend proxy for multi-user distribution.
 
 ## Roadmap

@@ -1,4 +1,9 @@
-import { buildProofreadMessages, parseProofreadResponse } from "./src/proofreading.js";
+import {
+  buildFollowUpMessages,
+  buildProofreadMessages,
+  parseFollowUpResponse,
+  parseProofreadResponse
+} from "./src/proofreading.js";
 import { DEFAULT_SETTINGS, normalizeSettings, STORAGE_KEYS } from "./src/settings.js";
 
 const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
@@ -38,6 +43,9 @@ async function routeMessage(message, sender) {
     case "CLEARPOST_CHECK_TEXT":
       assertXSender(sender);
       return checkSubmittedText(message.payload?.text);
+    case "CLEARPOST_FOLLOW_UP":
+      assertXSender(sender);
+      return followUp(message.payload);
     case "CLEARPOST_TEST_CONNECTION":
       assertOptionsSender(sender);
       return testConnection(message.payload);
@@ -163,6 +171,84 @@ async function testConnection(payload = {}) {
   });
 
   return { ok: true, model: settings.model };
+}
+
+async function followUp(payload = {}) {
+  const stored = await chrome.storage.local.get({
+    [STORAGE_KEYS.apiKey]: "",
+    [STORAGE_KEYS.settings]: DEFAULT_SETTINGS
+  });
+  const apiKey = normalizeApiKey(stored[STORAGE_KEYS.apiKey]);
+  const settings = normalizeSettings(stored[STORAGE_KEYS.settings]);
+  if (!apiKey) {
+    throw new ClearPostError("MISSING_API_KEY", "Add your DeepSeek API key in ClearPost settings.");
+  }
+
+  const requestId = crypto.randomUUID();
+  const question = payload?.question;
+  const history = payload?.history;
+  const context = payload?.context;
+  let messages;
+  try {
+    messages = buildFollowUpMessages(context, history, question, settings);
+  } catch (error) {
+    if (error instanceof TypeError || error instanceof RangeError) {
+      throw new ClearPostError("BAD_REQUEST", error.message);
+    }
+    throw error;
+  }
+
+  const startedAt = performance.now();
+  logDebug(settings, "follow_up_started", {
+    requestId,
+    model: settings.model,
+    questionLength: typeof question === "string" ? question.length : 0,
+    historyTurnCount: Array.isArray(history) ? history.length : 0,
+    textLength: typeof context?.originalText === "string" ? context.originalText.length : 0
+  });
+
+  const data = await callDeepSeek(apiKey, {
+    model: settings.model,
+    messages,
+    temperature: 0.2,
+    max_tokens: 500,
+    stream: false
+  }, {
+    purpose: "follow_up",
+    requestId,
+    settings,
+    startedAt
+  });
+
+  let result;
+  try {
+    result = parseFollowUpResponse(data?.choices?.[0]?.message?.content);
+  } catch (error) {
+    logError("parse_failed", {
+      requestId,
+      purpose: "follow_up",
+      code: error?.code ?? "INVALID_RESPONSE",
+      message: error?.message ?? "DeepSeek follow-up response could not be parsed"
+    });
+    logDebug(settings, "parse_response_shape", {
+      requestId,
+      purpose: "follow_up",
+      ...summarizeResponseShape(data)
+    });
+    throw error;
+  }
+
+  logDebug(settings, "follow_up_completed", {
+    requestId,
+    answerLength: result.answer.length,
+    elapsedMs: Math.round(performance.now() - startedAt)
+  });
+
+  return {
+    ok: true,
+    requestId,
+    result
+  };
 }
 
 async function callDeepSeek(apiKey, payload, context = {}) {

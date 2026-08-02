@@ -19,7 +19,8 @@ The accepted visual references are:
 
 - Options: password input, model select, connection test, three switches, response-language select, post-submit radio state, save success state.
 - Diagnostics: opt-in debug-logging switch with a short privacy explanation.
-- Overlay: loading progress, clean result, correction comparison, copy action, dismiss, retry, and missing-key settings action.
+- Overlay: loading progress, clean result, correction comparison, follow-up conversation, dismiss, retry, and missing-key settings action.
+- Follow-up conversation: contextual prompt, bounded message thread, question input, send, retry, and return-to-result actions.
 - Motion: 180ms overlay entry and indeterminate progress; removed under `prefers-reduced-motion`.
 - Focus: cobalt 3px focus ring; every action remains keyboard operable.
 

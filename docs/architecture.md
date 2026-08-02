@@ -8,7 +8,7 @@ flowchart LR
   C -->|fixed HTTPS endpoint| E["DeepSeek chat API"]
   E -->|JSON result| C
   C -->|validated result| B
-  B --> F["Shadow DOM result panel"]
+  B --> F["Shadow DOM result panel and follow-up thread"]
 ```
 
 ## Trust boundaries
@@ -27,7 +27,9 @@ The destination is constant, HTTPS-only, and also constrained by the manifest ho
 
 ### DeepSeek → page UI
 
-The model response must parse as JSON and is normalized into bounded strings and issue objects. Rendering uses DOM `textContent`/text nodes rather than `innerHTML`, inside a closed Shadow DOM root.
+Proofread responses must parse as JSON and are normalized into bounded strings and issue objects. Rendering uses DOM `textContent`/text nodes rather than `innerHTML`, inside a closed Shadow DOM root.
+
+Follow-up answers use the same HTTPS endpoint but a separate plain-text prompt. The active proofread context and bounded prior turns are sent with each question; the service worker validates the request and the content script renders the answer as text nodes.
 
 ## Diagnostics
 
@@ -44,7 +46,7 @@ X is a single-page React application and does not expose a stable public form-su
 
 This is an activation listener, not confirmation that X's backend accepted the post.
 
-## Non-goals for 0.1.1
+## Non-goals for 0.2.0
 
 - Editing or replacing the X draft automatically.
 - Blocking a submission while DeepSeek responds.
