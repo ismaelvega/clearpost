@@ -1,0 +1,10 @@
+{
+  "name": "clearpost",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check service-worker.js && node --check content-script.js && node --check options.js && node --test",
+    "test": "node --test"
+  }
+}

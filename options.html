@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ClearPost settings</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="page-header">
+        <div>
+          <h1 class="wordmark">ClearPost</h1>
+          <p class="tagline">A quiet grammar check after you post on X.</p>
+        </div>
+        <p class="active-status"><span aria-hidden="true"></span>Active on x.com</p>
+      </header>
+
+      <div class="content-grid">
+        <main>
+          <form id="settings-form" novalidate>
+            <section class="settings-section" aria-labelledby="connection-heading">
+              <h2 id="connection-heading">DeepSeek connection</h2>
+              <div class="form-row">
+                <label for="api-key">API key</label>
+                <div class="field-stack">
+                  <input id="api-key" name="apiKey" type="password" autocomplete="new-password" placeholder="sk-••••••••••••" aria-describedby="api-key-help">
+                  <p id="api-key-help" class="field-help">Stored only in this browser profile.</p>
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="model">Model</label>
+                <div class="field-stack">
+                  <select id="model" name="model">
+                    <option value="deepseek-v4-flash">deepseek-v4-flash</option>
+                    <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+                  </select>
+                  <div class="connection-actions">
+                    <button id="test-connection" class="button button-outline" type="button">Test connection</button>
+                    <span id="connection-status" class="inline-status" role="status" aria-live="polite"></span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-section" aria-labelledby="checks-heading">
+              <h2 id="checks-heading">Checks</h2>
+              <div class="switch-list">
+                <label class="switch-row" for="grammar">
+                  <span>Grammar</span>
+                  <input id="grammar" name="grammar" type="checkbox">
+                  <span class="switch" aria-hidden="true"></span>
+                </label>
+                <label class="switch-row" for="spelling">
+                  <span>Spelling</span>
+                  <input id="spelling" name="spelling" type="checkbox">
+                  <span class="switch" aria-hidden="true"></span>
+                </label>
+                <label class="switch-row" for="acknowledgement">
+                  <span>Acknowledgement</span>
+                  <input id="acknowledgement" name="acknowledgement" type="checkbox">
+                  <span class="switch" aria-hidden="true"></span>
+                </label>
+              </div>
+              <div class="form-row compact-row">
+                <label for="response-language">Response language</label>
+                <select id="response-language" name="responseLanguage">
+                  <option value="match">Match the post</option>
+                  <option value="english">English</option>
+                  <option value="spanish">Spanish</option>
+                </select>
+              </div>
+            </section>
+
+            <section class="settings-section" aria-labelledby="behavior-heading">
+              <h2 id="behavior-heading">Behavior</h2>
+              <div class="radio-list">
+                <label class="radio-row">
+                  <input type="radio" name="behavior" value="after" checked>
+                  <span>
+                    <strong>Check after posting</strong>
+                    <small>Never delays publishing.</small>
+                  </span>
+                </label>
+                <label class="radio-row disabled-row">
+                  <input type="radio" name="behavior" value="before" disabled>
+                  <span>
+                    <strong>Review before posting</strong>
+                    <small>Pause publishing until you approve changes.</small>
+                  </span>
+                  <span class="coming-next">Coming next</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-section privacy-section" aria-labelledby="privacy-heading">
+              <h2 id="privacy-heading">Privacy</h2>
+              <p>Only submitted text is sent to DeepSeek. Drafts and media never leave the page.</p>
+            </section>
+
+            <section class="settings-section diagnostics-section" aria-labelledby="diagnostics-heading">
+              <h2 id="diagnostics-heading">Diagnostics</h2>
+              <label class="switch-row" for="debug-logging">
+                <span>Debug logging</span>
+                <input id="debug-logging" name="debugLogging" type="checkbox">
+                <span class="switch" aria-hidden="true"></span>
+              </label>
+              <p class="section-help">Writes timing and response-shape details to the service worker console. Post text and API keys are never logged.</p>
+            </section>
+
+            <div class="save-row">
+              <button class="button button-primary" type="submit">Save settings</button>
+              <span id="save-status" class="save-status" role="status" aria-live="polite"></span>
+            </div>
+          </form>
+        </main>
+
+        <aside class="how-it-works" aria-labelledby="how-heading">
+          <h2 id="how-heading">How it works</h2>
+          <ol>
+            <li><span>1</span><p>Submit on X</p></li>
+            <li><span>2</span><p>Check with DeepSeek</p></li>
+            <li><span>3</span><p>See the result</p></li>
+          </ol>
+        </aside>
+      </div>
+
+      <footer>ClearPost <span id="version">0.1.1</span> · Runs only on x.com</footer>
+    </div>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

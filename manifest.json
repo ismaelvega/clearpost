@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "ClearPost",
+  "version": "0.1.1",
+  "description": "Checks X posts, replies, and quotes with DeepSeek after you submit them.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.deepseek.com/*"
+  ],
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://*.x.com/*"
+      ],
+      "js": [
+        "content-script.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "options_page": "options.html",
+  "action": {
+    "default_title": "Open ClearPost settings"
+  }
+}

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ClearPost overlay fixture</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; color: #172033; background: #fff; font: 14px/1.45 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .layout { display: grid; grid-template-columns: 250px 620px 1fr; width: 1180px; min-height: 100vh; margin: 0 auto; border-inline: 1px solid #e2e8f0; }
+      nav { padding: 32px 26px; border-right: 1px solid #e2e8f0; }
+      nav strong { display: block; margin-bottom: 28px; font-size: 18px; }
+      nav a { display: block; margin: 0 0 22px; color: #344054; text-decoration: none; }
+      main { border-right: 1px solid #e2e8f0; }
+      .tabs { display: flex; height: 58px; border-bottom: 1px solid #e2e8f0; }
+      .tabs span { flex: 1; display: grid; place-items: center; font-weight: 650; }
+      .tabs span:first-child { color: #0e61df; box-shadow: inset 0 -2px #1769e8; }
+      .composer { padding: 22px; border-bottom: 1px solid #e2e8f0; }
+      [contenteditable] { min-height: 74px; color: #202b3d; font-size: 18px; outline: none; }
+      .toolbar { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; color: #1769e8; }
+      .fake-tools { letter-spacing: 12px; }
+      [data-testid="tweetButtonInline"] { padding: 9px 20px; color: #fff; background: #1769e8; border: 0; border-radius: 999px; font-weight: 700; }
+      article { padding: 20px 24px; border-bottom: 1px solid #e2e8f0; }
+      article header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+      article p { margin: 0 0 15px; color: #344054; }
+      .meta { color: #8b96a8; font-size: 12px; }
+      aside { padding: 28px 24px; }
+      .search { height: 42px; margin-bottom: 22px; padding: 11px 16px; color: #8590a2; background: #f4f7fa; border-radius: 999px; }
+      .rail { padding: 19px; background: #f7f9fb; border-radius: 14px; }
+      .rail h2 { margin: 0 0 16px; font-size: 18px; }
+      .rail p { margin: 12px 0; color: #526074; }
+      @media (max-width: 1000px) { .layout { grid-template-columns: 190px minmax(520px, 1fr); width: 100%; } aside { display: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <nav aria-label="Mock navigation">
+        <strong>Timeline</strong>
+        <a href="#">Home</a><a href="#">Explore</a><a href="#">Notifications</a><a href="#">Messages</a><a href="#">Bookmarks</a><a href="#">Profile</a>
+      </nav>
+      <main>
+        <div class="tabs"><span>For you</span><span>Following</span></div>
+        <section class="composer">
+          <div data-testid="tweetTextarea_0" contenteditable="true">Their going to recieve it tomorrow.</div>
+          <div class="toolbar"><span class="fake-tools">□ ◉ ◌</span><button data-testid="tweetButtonInline" type="button">Post</button></div>
+        </section>
+        <article><header><strong>Jamie Lee</strong><span class="meta">2h</span></header><p>Big week ahead. Grateful for the team and the progress we're making.</p><span class="meta">Reply · Repost · Like</span></article>
+        <article><header><strong>Taylor Kim</strong><span class="meta">3h</span></header><p>Sunrise walks are the best reset.</p><span class="meta">Reply · Repost · Like</span></article>
+        <article><header><strong>Casey Nguyen</strong><span class="meta">4h</span></header><p>Coffee, focus, repeat.</p><span class="meta">Reply · Repost · Like</span></article>
+      </main>
+      <aside>
+        <div class="search">Search</div>
+        <section class="rail"><h2>What’s happening</h2><p>Product design</p><p>Writing tools</p><p>Browser extensions</p></section>
+      </aside>
+    </div>
+    <script>
+      const previewState = new URLSearchParams(location.search).get("state") || "result";
+      globalThis.chrome = {
+        runtime: {
+          lastError: undefined,
+          sendMessage(message, callback) {
+            if (previewState === "loading") return;
+            setTimeout(() => callback({
+              ok: true,
+              result: {
+                verdict: "changes",
+                correctedText: "They’re going to receive it tomorrow.",
+                acknowledgement: "The timing is concise and easy to understand.",
+                issues: [
+                  { type: "grammar", original: "Their", replacement: "They’re" },
+                  { type: "spelling", original: "recieve", replacement: "receive" }
+                ]
+              }
+            }), 650);
+          }
+        }
+      };
+    </script>
+    <script src="../../content-script.js"></script>
+    <script>
+      setTimeout(() => document.querySelector('[data-testid="tweetButtonInline"]').click(), 100);
+    </script>
+  </body>
+</html>
