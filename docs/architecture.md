@@ -31,6 +31,8 @@ Proofread responses must parse as JSON and are normalized into bounded strings a
 
 Follow-up answers use the same HTTPS endpoint but a separate plain-text prompt. The active proofread context and bounded prior turns are sent with each question; the service worker validates the request and the content script renders the answer with a small safe Markdown subset using DOM nodes, never `innerHTML`.
 
+The result and follow-up UI lives in a closed Shadow DOM root. Its keyboard events are stopped at that boundary so X's document-level shortcuts (for example, `n` for New post) cannot interpret text typed into ClearPost controls.
+
 ## Diagnostics
 
 The service worker emits `[ClearPost]` console events. Debug events are opt-in from settings and are deliberately shape-only: they report request IDs, timing, HTTP status, content length/type, finish reason, and coarse object/array/Markdown-fence classification. They do not report API keys or submitted/model text. Error summaries remain available when debug logging is off so a failed request is not silent.
@@ -46,7 +48,7 @@ X is a single-page React application and does not expose a stable public form-su
 
 This is an activation listener, not confirmation that X's backend accepted the post.
 
-## Non-goals for 0.2.1
+## Non-goals for 0.2.2
 
 - Editing or replacing the X draft automatically.
 - Blocking a submission while DeepSeek responds.

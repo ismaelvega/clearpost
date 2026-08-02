@@ -54,6 +54,14 @@
       </aside>
     </div>
     <script>
+      document.documentElement.dataset.xShortcutEvents = "0";
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "n" || event.key === "?" || event.key === "Enter") {
+          const events = Number(document.documentElement.dataset.xShortcutEvents || "0");
+          document.documentElement.dataset.xShortcutEvents = String(events + 1);
+        }
+      });
+
       const previewState = new URLSearchParams(location.search).get("state") || "result";
       globalThis.chrome = {
         runtime: {

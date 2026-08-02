@@ -42,6 +42,7 @@ The result acknowledgement is API output and therefore dynamic; the concept sent
 - A simulated publish activation captured the exact composer text and rendered the correction result.
 - The result action opened the contextual follow-up view, accepted a question, showed a loading turn, and rendered the assistant response.
 - A Markdown follow-up response rendered two ordered items, bold emphasis, and deliberate line breaks; DOM inspection found no `script`, `style`, `img`, or `iframe` nodes.
+- A fixture-level X shortcut listener saw zero events while `n` was typed in the follow-up textarea; the character remained in the field and the Send action still completed. Production mode was restored to a closed Shadow DOM root afterward.
 - A delayed simulated response rendered the loading state first.
 - Desktop browser console: no errors.
 

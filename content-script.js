@@ -711,9 +711,22 @@
     const body = element("div", { className: "body" });
     shell.append(body);
     shadow.append(style, shell);
+    shieldOverlayKeyboardEvents(shadow);
     document.documentElement.append(host);
     overlay = { host, shadow, shell, body };
     return overlay;
+  }
+
+  function shieldOverlayKeyboardEvents(shadow) {
+    const stopPageShortcut = (event) => {
+      // X handles shortcuts on the page document. Keep ClearPost's controls
+      // local to the panel while preserving the controls' default behavior.
+      event.stopPropagation();
+    };
+
+    shadow.addEventListener("keydown", stopPageShortcut);
+    shadow.addEventListener("keypress", stopPageShortcut);
+    shadow.addEventListener("keyup", stopPageShortcut);
   }
 
   function dismissOverlay() {
