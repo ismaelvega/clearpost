@@ -8,6 +8,7 @@ import { DEFAULT_SETTINGS, normalizeSettings, STORAGE_KEYS } from "./src/setting
 
 const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
 const REQUEST_TIMEOUT_MS = 30_000;
+const MAX_FOLLOW_UP_OUTPUT_TOKENS = 384_000;
 const LOG_PREFIX = "[ClearPost]";
 
 chrome.runtime.onInstalled.addListener((details) => {
@@ -211,7 +212,7 @@ async function followUp(payload = {}) {
     model: settings.model,
     messages,
     temperature: 0.2,
-    max_tokens: 500,
+    max_tokens: MAX_FOLLOW_UP_OUTPUT_TOKENS,
     stream: false
   }, {
     purpose: "follow_up",
