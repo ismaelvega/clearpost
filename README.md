@@ -25,6 +25,26 @@ ClearPost is a dependency-free Manifest V3 extension for Chromium browsers. It w
 
 ClearPost does **not** edit, delay, delete, or automatically repost anything. The result and follow-up conversation are informational; applying a suggestion remains a deliberate user action in the X composer.
 
+## Screenshots
+
+These rendered examples come from the local visual fixtures, so they contain no API keys or live X data.
+
+### Check result
+
+![ClearPost result overlay with correction suggestions](docs/screenshots/result-overlay.jpg)
+
+### Follow-up conversation
+
+![ClearPost follow-up conversation on desktop](docs/screenshots/followup-desktop.jpg)
+
+The follow-up view remains usable on a narrow viewport too:
+
+![ClearPost follow-up conversation on mobile](docs/screenshots/followup-mobile.jpg)
+
+### Markdown-aware replies
+
+![ClearPost rendering a Markdown-formatted follow-up reply](docs/screenshots/markdown-desktop.jpg)
+
 ## Quick start
 
 ### 1. Get a DeepSeek API key
